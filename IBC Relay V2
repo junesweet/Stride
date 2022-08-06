@@ -1,0 +1,228 @@
+============= Install GO and RUST
+sudo apt install curl tar wget clang pkg-config libssl-dev jq build-essential bsdmainutils git make ncdu -y
+curl https://sh.rustup.rs/ -sSf | sh
+
+============== Install Relay V2 
+Refer: https://github.com/cosmos/relayer?fbclid=IwAR3fBu3kTtqDCBxxbR3W4SwSjckoIDBUuQ2J-Z-nsmTA0cGV6-8tC70_t_U
+
+git clone https://github.com/cosmos/relayer.git
+cd relayer/
+git checkout v2.0.0-rc4
+make install 
+
+================== Relay Config
+rly config init --memo "YOUR_DISCORD_NAME"
+cd $HOME/.relayer/config
+nano config.yaml:
+
+global:
+    api-listen-addr: :5183
+    timeout: 10s
+    memo: "junesweet1122#9998"
+    light-cache-size: 20
+
+chains:
+    GAIA:
+        type: cosmos
+        value:
+            key: NA_Gaia
+            chain-id: GAIA
+            rpc-addr: http://localhost:23657
+            account-prefix: cosmos
+            keyring-backend: test
+            gas-adjustment: 1.2
+            gas-prices: 0.0025uatom
+            debug: true
+            timeout: 20s
+            output-format: json
+            sign-mode: direct
+    STRIDE-TESTNET-2:
+        type: cosmos
+        value:
+            key: NA_Stride
+            chain-id: STRIDE-TESTNET-2
+            rpc-addr: https://localhost:16657
+            account-prefix: stride
+            keyring-backend: test
+            gas-adjustment: 1.2
+            gas-prices: 0.0025ustrd
+            debug: true
+            timeout: 20s
+            output-format: json
+            sign-mode: direct
+paths:
+    stride_gaia.json:
+        src:
+            chain-id: STRIDE-TESTNET-2
+            client-id: 07-tendermint-0
+            connection-id: connection-0
+        dst:
+            chain-id: GAIA
+            client-id: 07-tendermint-0
+            connection-id: connection-0
+        src-channel-filter:
+            rule: ""
+            channel-list: []
+    Path_Stride_Gaia:
+        src:
+            chain-id: STRIDE-TESTNET-2
+            client-id: 07-tendermint-158
+            connection-id: connection-1275
+        dst:
+            chain-id: GAIA
+            client-id: 07-tendermint-21
+            connection-id: connection-821
+        src-channel-filter:
+            rule: ""
+            channel-list: []
+
+==================== Add chain by json file
+rly chains add --file stride_testnet_2.json STRIDE-TESTNET-2
+rly chains add --file gaia.json GAIA
+
+stride_testnet_2.json
+
+{
+  "type": "cosmos",
+  "value": {
+    "key": "NA_Stride",
+    "chain-id": "STRIDE-TESTNET-2",
+    "rpc-addr": "http://localhost:16657",
+    "account-prefix": "stride",
+    "keyring-backend": "test",
+    "gas-adjustment": 1.2,
+    "gas-prices": "0.0025ustrd",
+    "debug": true,
+    "timeout": "300s",
+    "output-format": "json",
+    "sign-mode": "direct"
+  }
+}
+
+gaia.json
+
+{
+  "type": "cosmos",
+  "value": {
+    "key": "NA_Gaia",
+    "chain-id": "GAIA",
+    "rpc-addr": "http://localhost:23657",
+    "account-prefix": "comos",
+    "keyring-backend": "test",
+    "gas-adjustment": 1.2,
+    "gas-prices": "0.0025uatom",
+    "debug": true,
+    "timeout": "300s",
+    "output-format": "json",
+    "sign-mode": "direct"
+  }
+}
+
+================= Add key
+
+rly keys restore STRIDE-TESTNET-2 NA_Stride "24 mnemomic phrase"
+rly keys restore GAIA NA_Gaia "24 mnemomic phrase"
+
+
+root@ubunu2004:~/.relayer/config# rly keys restore STRIDE-TESTNET-2 NA_Stride "24 mnemomic phrase"
+stride1csevgs07q06ugdd63458sdfkzrl827lck32kvd
+root@ubunu2004:~/.relayer/config# rly keys restore GAIA NA_Gaia "24 mnemomic phrase"
+cosmos1kz48wtsvfyjs0qv57dfkrskl4fp95t4f9etxwc
+root@ubunu2004:~/.relayer/config#
+
+============= Query balance
+
+rly q balance GAIA
+rly q balance STRIDE-TESTNET-2
+
+root@ubunu2004:~/.relayer/config# rly q balance STRIDE-TESTNET-2
+address {stride1csevgs07q06ugdd63458sdfkzrl827lck32kvd} balance {4900000transfer/channel-0/uatom,8000transfer/channel-36/ujunox,5086549stuatom,3998670ustrd}
+root@ubunu2004:~/.relayer/config#
+
+root@ubunu2004:~/.relayer/config# rly q balance GAIA
+address {cosmos1kz48wtsvfyjs0qv57dfkrskl4fp95t4f9etxwc} balance {10000000uatom}
+root@ubunu2004:~/.relayer/config#
+
+
+root@ubunu2004:~/.relayer/config# rly version
+version: 2.0.0-rc4
+commit: unknown
+cosmos-sdk: v0.45.6
+go: go1.18.3 linux/amd64
+
+root@ubunu2004:~/.relayer/config# rly chains list
+ 1: GAIA                 -> type(cosmos) key(✔) bal(✔) path(✔)
+ 2: STRIDE-TESTNET-2     -> type(cosmos) key(✔) bal(✔) path(✔)
+root@ubunu2004:~/.relayer/config#
+
+================= Make system service
+
+sudo tee /etc/systemd/system/rlyd.service > /dev/null <<EOF
+[Unit]
+Description=V2 Go relayer
+After=network-online.target
+
+[Service]
+User=$USER
+ExecStart=$(which rly) start Path_Stride_Gaia --memo "junesweet1122#9998"
+Restart=on-failure
+RestartSec=3
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+========= Command to manage service
+
+sudo systemctl daemon-reload
+sudo systemctl enable rlyd
+sudo systemctl restart rlyd
+
+sudo journalctl -fu rlyd -o cat
+
+sudo systemctl stop rlyd
+
+==================== Path
+
+rly paths new STRIDE-TESTNET-2 GAIA Path_Stride_Gaia
+
+========== Create by link command
+rly transact link Path_Stride_Gaia  
+
+========== Create manual
+
+rly transact clients Path_Stride_Gaia
+rly transact connection Path_Stride_Gaia
+rly transact channel Path_Stride_Gaia
+
+=============== Example
+root@ubunu2004:~/.relayer/config# rly transact connection Path_Stride_Gaia
+
+2022-08-05T15:32:27.604773Z     info    Successful transaction  {"provider_type": "cosmos", "chain_id": "STRIDE-TESTNET-2", "gas_used": 276633, "fees": "798ustrd", "fee_payer": "stride1csevgs07q06ugdd63458sdfkzrl827lck32kvd", "height": 97355, "msg_types": ["/ibc.core.client.v1.MsgUpdateClient", "/ibc.core.connection.v1.MsgConnectionOpenInit"], "tx_hash": ""}
+
+2022-08-05T15:32:36.639328Z     info    Successful transaction  {"provider_type": "cosmos", "chain_id": "GAIA", "gas_used": 775849, "fees": "2295uatom", "fee_payer": "cosmos1kz48wtsvfyjs0qv57dfkrskl4fp95t4f9etxwc", "height": 165042, "msg_types": ["/ibc.core.client.v1.MsgUpdateClient", "/ibc.core.connection.v1.MsgConnectionOpenTry"], "tx_hash": ""}
+
+root@ubunu2004:~/.relayer/config# rly transact channel Path_Stride_Gaia
+
+2022-08-05T15:33:39.955547Z     info    Successful transaction  {"provider_type": "cosmos", "chain_id": "STRIDE-TESTNET-2", "gas_used": 319906, "fees": "928ustrd", "fee_payer": "stride1csevgs07q06ugdd63458sdfkzrl827lck32kvd", "height": 97367, "msg_types": ["/ibc.core.client.v1.MsgUpdateClient", "/ibc.core.channel.v1.MsgChannelOpenInit"], "tx_hash": ""}
+
+2022-08-05T15:33:51.910768Z     info    Successful transaction  {"provider_type": "cosmos", "chain_id": "GAIA", "gas_used": 560206, "fees": "1649uatom", "fee_payer": "cosmos1kz48wtsvfyjs0qv57dfkrskl4fp95t4f9etxwc", "height": 165057, "msg_types": ["/ibc.core.client.v1.MsgUpdateClient", "/ibc.core.channel.v1.MsgChannelOpenTry"], "tx_hash": ""}
+
+root@ubunu2004:~/.relayer/config# rly transact channel Path_Stride_Gaia
+Error: channel {channel-621} with port {transfer} already exists on chain {STRIDE-TESTNET-2}
+
+=================== Transfer
+----------- Transfer from Stride to Gaia: Channel-621
+
+rly transact transfer STRIDE-TESTNET-2 GAIA  1000ustrd $(rly chains address GAIA) channel-621 --path Path_Stride_Gaia
+root@ubunu2004:~# rly transact transfer STRIDE-TESTNET-2 GAIA  1000ustrd $(rly chains address GAIA) channel-621 --path Path_Stride_Gaia
+2022-08-06T01:41:59.306287Z     info    Successful transaction  {"provider_type": "cosmos", "chain_id": "STRIDE-TESTNET-2", "packet_src_channel": "channel-621", "packet_dst_channel": "channel-365", "gas_used": 88272, "fees": "233ustrd", "fee_payer": "stride1csevgs07q06ugdd63458sdfkzrl827lck32kvd", "height": 103142, "msg_types": ["/ibc.applications.transfer.v1.MsgTransfer"], "tx_hash": ""}
+root@ubunu2004:~#
+
+------------ Transfer from Gaia to Stride: Channel-365
+
+rly transact transfer GAIA STRIDE-TESTNET-2 100uatom $(rly chains address STRIDE-TESTNET-2) channel-365 --path Path_Stride_Gaia
+root@ubunu2004:~# rly transact transfer GAIA STRIDE-TESTNET-2 100uatom $(rly chains address STRIDE-TESTNET-2) channel-365 --path Path_Stride_Gaia
+2022-08-06T01:43:31.823042Z     info    Successful transaction  {"provider_type": "cosmos", "chain_id": "GAIA", "packet_src_channel": "channel-365", "packet_dst_channel": "channel-621", "gas_used": 88513, "fees": "233uatom", "fee_payer": "cosmos1kz48wtsvfyjs0qv57dfkrskl4fp95t4f9etxwc", "height": 172303, "msg_types": ["/ibc.applications.transfer.v1.MsgTransfer"], "tx_hash": ""}
+root@ubunu2004:~#
