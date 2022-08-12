@@ -1,0 +1,64 @@
+https://github.com/kj89/icq_stride
+
+sudo tee $HOME/.icq/config.yaml > /dev/null <<EOF
+default_chain: stride-testnet
+chains:
+  gaia:
+    key: NA_Gaia
+    chain-id: GAIA
+    rpc-addr: http://127.0.0.1:23657       
+    grpc-addr: http://127.0.0.1:23090     
+    account-prefix: cosmos
+    keyring-backend: test
+    gas-adjustment: 1.2
+    gas-prices: 0.001uatom
+    key-directory: /root/.icq/keys
+    debug: false
+    timeout: 20s
+    block-timeout: ""
+    output-format: json
+    sign-mode: direct
+  stride:
+    key: NA_Stride
+    chain-id: STRIDE-TESTNET-2
+    rpc-addr: http://127.0.0.1:16657      
+    grpc-addr: http://127.0.0.1:16090     
+    account-prefix: stride
+    keyring-backend: test
+    gas-adjustment: 1.2
+    gas-prices: 0.001ustrd
+    key-directory: /root/.icq/keys
+    debug: false
+    timeout: 20s
+    block-timeout: ""
+    output-format: json
+    sign-mode: direct
+cl: {}
+EOF
+
+
+============= Wallet
+
+icq keys restore --chain stride NA_Stride
+icq keys restore --chain gaia NA_Gaia
+
+root@ubunu2004:~/.icq# icq keys restore --chain stride NA_Stride
+Enter mnemonic 🔑: 24 keys
+
+stride1csevgs07q06ugdd63458sdfkzrl827lck32kvd
+root@ubunu2004:~/.icq#
+root@ubunu2004:~/.icq#
+root@ubunu2004:~/.icq# icq keys restore --chain gaia NA_Gaia
+Enter mnemonic 🔑: 24 keys
+
+cosmos1kz48wtsvfyjs0qv57dfkrskl4fp95t4f9etxwc
+root@ubunu2004:~/.icq#
+
+
+============== Create systemd service
+
+sudo systemctl daemon-reload
+sudo systemctl enable icqd
+sudo systemctl restart icqd
+
+sudo systemctl stop icqd
