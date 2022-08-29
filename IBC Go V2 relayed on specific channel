@@ -1,0 +1,108 @@
+=========================================================== Configure for task 7: relay on specific channel of team (channel-0)
+
+//////////////////////////////////////////// configure as default channel of team
+
+sudo tee $HOME/.relayer/config/rly_stride_gaia.json > /dev/null <<EOF
+{
+  "src": {
+    "chain-id": "STRIDE-TESTNET-4",
+    "client-id": "07-tendermint-0",
+    "connection-id": "connection-0"
+  },
+  "dst": {
+    "chain-id": "GAIA",
+    "client-id": "07-tendermint-0",
+    "connection-id": "connection-0"
+  },
+  "src-channel-filter": {
+    "rule": "allowlist",
+    "channel-list": ["channel-0", "channel-1", "channel-2", "channel-3", "channel-4"]
+  }
+}
+EOF
+
+----------------- add path
+rly paths add STRIDE-TESTNET-4 GAIA rly_stride_gaia --file $HOME/.relayer/config/rly_stride_gaia.json
+
+--------------- config show
+
+root@ubunu2004:~/.relayer/config# rly config show
+global:
+    api-listen-addr: :5183
+    timeout: 10s
+    memo: junesweet1122#9998
+    light-cache-size: 20
+chains:
+    GAIA:
+        type: cosmos
+        value:
+            key: NA_Gaia
+            chain-id: GAIA
+            rpc-addr: http://localhost:23657
+            account-prefix: cosmos
+            keyring-backend: test
+            gas-adjustment: 1.2
+            gas-prices: 0.0025uatom
+            debug: true
+            timeout: 20s
+            output-format: json
+            sign-mode: direct
+    STRIDE-TESTNET-4:
+        type: cosmos
+        value:
+            key: NA_Stride
+            chain-id: STRIDE-TESTNET-4
+            rpc-addr: http://localhost:16657
+            account-prefix: stride
+            keyring-backend: test
+            gas-adjustment: 1.2
+            gas-prices: 0.0025ustrd
+            debug: true
+            timeout: 20s
+            output-format: json
+            sign-mode: direct
+paths:
+    Path_Stride_Gaia:
+        src:
+            chain-id: STRIDE-TESTNET-4
+        dst:
+            chain-id: GAIA
+        src-channel-filter:
+            rule: ""
+            channel-list: []
+    rly_stride_gaia:
+        src:
+            chain-id: STRIDE-TESTNET-4
+            client-id: 07-tendermint-0
+            connection-id: connection-0
+        dst:
+            chain-id: GAIA
+            client-id: 07-tendermint-0
+            connection-id: connection-0
+        src-channel-filter:
+            rule: allowlist
+            channel-list:
+                - channel-0
+                - channel-1
+                - channel-2
+                - channel-3
+                - channel-4
+
+root@ubunu2004:~/.relayer/config#
+
+
+------------------ verify path
+
+root@ubunu2004:~/.relayer/config# rly paths list
+ 0: Path_Stride_Gaia     -> chns(✔) clnts(✘) conn(✘) (STRIDE-TESTNET-4<>GAIA)
+ 1: rly_stride_gaia      -> chns(✔) clnts(✔) conn(✔) (STRIDE-TESTNET-4<>GAIA)
+root@ubunu2004:~/.relayer/config#
+
+
+------------------- query
+
+root@ubunu2004:~/.relayer/config# rly q balance GAIA
+address {cosmos1kz48wtsvfyjs0qv57dfkrskl4fp95t4f9etxwc} balance {10000000uatom}
+root@ubunu2004:~/.relayer/config# rly q balance STRIDE-TESTNET-4
+address {stride1csevgs07q06ugdd63458sdfkzrl827lck32kvd} balance {4981588ustrd}
+root@ubunu2004:~/.relayer/config#
